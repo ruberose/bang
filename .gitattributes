@@ -1,0 +1,9 @@
+# 줄바꿈 규칙: Windows에서 커밋해도 저장소에는 LF로 저장한다.
+* text=auto
+# gradlew는 macOS/Linux 셸 스크립트라 반드시 LF여야 실행된다.
+gradlew text eol=lf
+# .bat는 Windows 전용이라 CRLF 유지
+*.bat text eol=crlf
+# 바이너리는 줄바꿈 변환 금지
+*.jar binary
+*.png binary

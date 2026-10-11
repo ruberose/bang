@@ -1,0 +1,4 @@
+<resources>
+    <!-- 앱 이름 (가칭). 8단계에서 확정한다. -->
+    <string name="app_name">총잡이 피하기</string>
+</resources>

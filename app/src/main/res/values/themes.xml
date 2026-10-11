@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      앱 테마. 실제 화면 색상은 Compose에서 그리므로 여기서는 최소한만 지정한다.
+      AppCompat 라이브러리를 추가하지 않으려고 안드로이드 기본 Material 테마를 쓴다.
+      NoActionBar: 상단 제목 막대를 없애서 게임 화면을 전체로 쓴다.
+    -->
+    <style name="Theme.Bang" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

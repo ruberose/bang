@@ -1,0 +1,16 @@
+# 빌드 결과물 / IDE 설정
+*.iml
+.gradle/
+.idea/
+.kotlin/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+# 내 PC의 SDK 경로가 들어있어서 공유하면 안 됨
+local.properties
+
+# ⚠️ 보안: 서명 키와 비밀번호는 절대 커밋하지 않는다 (CLAUDE.md 규칙)
+*.jks
+*.keystore
+keystore.properties

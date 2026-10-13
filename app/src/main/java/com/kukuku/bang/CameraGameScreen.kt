@@ -59,21 +59,22 @@ fun CameraGameScreen(
     var faceVisible by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
-        // 맨 아래: 셀카 화면. 각도가 들어올 때마다 보정 중이면 보정기에, 게임 중이면 입력에 넘긴다.
+        // 맨 아래: 셀카 화면. 얼굴 정보가 들어올 때마다 보정 중이면 보정기에, 게임 중이면 입력에 넘긴다.
+        // (보정 중에는 입력에 넘기지 않는다: 보정 전 기준값으로 판정이 돌면 엉뚱한 잠김 상태가 남을 수 있어서)
         FaceCamera(
             modifier = Modifier.fillMaxSize(),
-            onAngle = { angle, timeNanos ->
-                faceVisible = angle != null
+            onFace = { sample, timeNanos ->
+                faceVisible = sample != null
                 if (calibrating) {
                     val now = timeNanos / 1_000_000_000.0
-                    val baseline = calibrator.onAngle(angle, now)
+                    val baseline = calibrator.onAngle(sample?.angleDeg, now)
                     calibrationProgress = calibrator.progress(now)
                     if (baseline != null) {
                         faceInput.setBaseline(baseline)
                         calibrating = false
                     }
                 } else {
-                    faceInput.onAngle(angle, timeNanos)
+                    faceInput.onFace(sample, timeNanos)
                 }
             },
             onError = onCameraError,
@@ -87,6 +88,7 @@ fun CameraGameScreen(
                 onExit = onExit,
                 dodgeWindowBonus = GameConfig.FACE_DODGE_WINDOW_BONUS,
                 cameraBackground = true,
+                face = { faceInput.face },
                 debugText = if (showTiltDebug) ({ faceInput.debugText }) else null,
             )
         }

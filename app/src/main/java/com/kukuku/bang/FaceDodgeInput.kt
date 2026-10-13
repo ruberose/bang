@@ -30,6 +30,13 @@ class FaceDodgeInput : DodgeInput {
     var debugText: String by mutableStateOf("얼굴을 찾는 중")
         private set
 
+    /**
+     * 지금 얼굴 위치 (흔들림 보정됨). 얼굴이 안 보이면 null.
+     * 게임 화면이 얼굴 안내 원과 총잡이 조준점을 실제 얼굴 위치에 그릴 때 쓴다.
+     */
+    var face: FaceBox? by mutableStateOf(null)
+        private set
+
     /** 등록/해제 */
     override fun setListener(listener: ((DodgeEvent) -> Unit)?) {
         this.listener = listener
@@ -41,11 +48,13 @@ class FaceDodgeInput : DodgeInput {
     }
 
     /**
-     * 카메라에서 새 각도가 들어올 때마다 호출된다 (메인 스레드).
-     * @param rawDeg ML Kit 원래 기울기(도). 얼굴이 없으면 null.
+     * 카메라에서 새 얼굴 정보가 들어올 때마다 호출된다 (메인 스레드).
+     * @param sample 기울기 + 위치. 얼굴이 없으면 null.
      * @param timeNanos 그 프레임을 받은 순간의 System.nanoTime()
      */
-    fun onAngle(rawDeg: Float?, timeNanos: Long) {
+    fun onFace(sample: FaceSample?, timeNanos: Long) {
+        face = sample?.let { FaceMapping.smooth(face, it.box, FACE_SMOOTHING) }
+        val rawDeg = sample?.angleDeg
         debugText = if (rawDeg == null) {
             "얼굴 없음"
         } else {
@@ -58,5 +67,13 @@ class FaceDodgeInput : DodgeInput {
             )
         }
         detector.onAngle(rawDeg)?.let { dir -> listener?.invoke(DodgeEvent(dir, timeNanos)) }
+    }
+
+    private companion object {
+        /**
+         * 얼굴 위치 흔들림 보정 강도 (0~1). 화면 연출용 값이라 GameConfig가 아닌 여기에 둔다.
+         * 0.5 = 매 프레임 새 위치 쪽으로 절반만 이동 → 떨림은 줄고, 고개를 움직이면 금방 따라온다.
+         */
+        const val FACE_SMOOTHING = 0.5f
     }
 }

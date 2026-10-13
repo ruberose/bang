@@ -94,10 +94,14 @@ internal object Layout {
     const val PLAYER_HEAD_R_RATIO = 0.17f   // 화면 너비 비율
 
     /**
-     * 총알이 노리는 점: 내 머리 중심에서 좌/우로 이만큼 (화면 너비 비율).
-     * 머리 반지름보다 작아서 가만히 있으면 맞고, 반대로 젖히면 머리가 이 점에서 벗어난다.
+     * 총알이 노리는 점: 머리 중심에서 좌/우로 "머리 반지름 × 이 값"만큼.
+     * 1보다 작아서 가만히 있으면 머리 안쪽(맞음), 반대로 기울이면 머리가 이 점에서 벗어난다.
+     * 머리 크기 기준 비율이라 카메라 모드에서 얼굴이 크든 작든 같은 느낌이 된다.
      */
-    const val TARGET_OFFSET_X_RATIO = 0.11f
+    const val TARGET_OFFSET_HEAD_RATIO = 0.65f
+
+    /** 조준점(과녁) 반지름 = 머리 반지름 × 이 값 */
+    const val RETICLE_HEAD_RATIO = 0.35f
 
     /**
      * 회피 동작: 내 실루엣을 화면 맨 아래 가운데를 축으로 젖히는 최대 각도(도).
@@ -138,6 +142,7 @@ internal object Layout {
  * @param dodgeWindowBonus 입력 지연 보정용 회피 구간 여유(초). 카메라 모드에서만 0보다 크다.
  * @param cameraBackground true면 배경을 칠하지 않는다 → 뒤에 깔린 셀카 화면이 보인다.
  * @param notice 상단에 작게 띄울 안내 (예: 카메라 권한 거절 안내). 없으면 null.
+ * @param face 지금 내 얼굴 위치를 돌려주는 함수 (카메라 모드). 터치 모드면 null → 고정 위치 사용.
  * @param debugText 화면 구석에 띄울 디버그 문구를 돌려주는 함수. 표시하지 않으면 null.
  *   문자열이 아니라 "함수"로 받는 이유: 값이 매 프레임 바뀌는데, 함수로 넘기면
  *   그 글자를 그리는 부분만 다시 그려지고 화면 전체가 다시 구성되지 않는다.
@@ -150,6 +155,7 @@ fun GameScreen(
     dodgeWindowBonus: Double = 0.0,
     cameraBackground: Boolean = false,
     notice: String? = null,
+    face: (() -> FaceBox?)? = null,
     debugText: (() -> String)? = null,
 ) {
     // remember: 화면이 다시 그려져도(리컴포지션) 값이 초기화되지 않게 보관한다.
@@ -169,9 +175,21 @@ fun GameScreen(
      */
     var lastFiring by remember { mutableStateOf<Phase.Firing?>(null) }
 
-    /** 새 상태를 반영하면서, 발사 단계면 총알 정보도 기억한다. */
+    /**
+     * 총잡이가 조준한 순간의 얼굴 위치 (카메라 모드).
+     *
+     * 경고가 시작되는 순간 한 번만 정하고 그 뒤로는 바꾸지 않는다.
+     * 조준점이 얼굴을 계속 따라다니면, 고개를 기울여 피해도 총알이 따라와 맞는 것처럼 보이기 때문이다.
+     * "총잡이는 그 순간 내 머리가 있던 곳을 쐈고, 나는 거기서 머리를 뺐다"가 되어야 한다.
+     */
+    var aimFace by remember { mutableStateOf<FaceBox?>(null) }
+
+    /** 새 상태를 반영하면서, 화면 연출용 정보(총알, 조준 위치)도 기억한다. */
     fun applyState(newState: GameState) {
-        (newState.phase as? Phase.Firing)?.let { lastFiring = it }
+        val np = newState.phase
+        // 경고 단계에 "새로 들어온" 순간에 조준 위치를 고정한다. 얼굴이 안 보이면 null → 기본 위치.
+        if (np is Phase.Warning && state.phase !is Phase.Warning) aimFace = face?.invoke()
+        (np as? Phase.Firing)?.let { lastFiring = it }
         state = newState
     }
 
@@ -228,7 +246,8 @@ fun GameScreen(
     ) {
         // ── 장면 그리기 ──
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawScene(state, now, lastFiring, cameraBackground)
+            // face?.invoke()를 그리기 안에서 읽으므로, 얼굴이 움직이면 그림만 다시 그려진다.
+            drawScene(state, now, lastFiring, cameraBackground, liveFace = face?.invoke(), aimFace = aimFace)
         }
 
         // ── 글자 (상단 연속 기록 / 실패 문구 / 하단 안내) ──
@@ -346,17 +365,31 @@ private fun Side.sign(): Float = if (this == Side.LEFT) -1f else 1f
  * @param now 현재 시각(초)
  * @param lastFiring 마지막으로 발사된 총알 (회피 후 스쳐 지나가는 모습, 실패 후 조준 자세 유지용)
  * @param cameraBackground 뒤에 셀카 화면이 깔려 있는지.
- *   true면 "나" 실루엣 대신 얼굴 위치 안내 원만 그린다 (진짜 내 얼굴이 보이므로).
+ *   true면 "나" 실루엣 대신 실제 얼굴을 둘러싼 원만 그린다 (진짜 내 얼굴이 보이므로).
+ * @param liveFace 지금 얼굴 위치 (카메라 모드, 안 보이면 null)
+ * @param aimFace 총잡이가 조준한 순간의 얼굴 위치 (카메라 모드, 그때 안 보였으면 null)
  */
 private fun DrawScope.drawScene(
     state: GameState,
     now: Double,
     lastFiring: Phase.Firing?,
     cameraBackground: Boolean,
+    liveFace: FaceBox?,
+    aimFace: FaceBox?,
 ) {
     val u = size.width * Layout.UNIT_RATIO
     val phase = state.phase
-    val headCenter = Offset(size.width / 2f, size.height * Layout.PLAYER_HEAD_Y_RATIO)
+
+    // 기본 머리 위치: 터치 모드, 또는 카메라 모드에서 얼굴이 안 보일 때 쓰는 고정 위치
+    val defaultHead = ScreenCircle(
+        x = size.width / 2f,
+        y = size.height * Layout.PLAYER_HEAD_Y_RATIO,
+        r = size.width * Layout.PLAYER_HEAD_R_RATIO,
+    )
+    // 카메라 이미지 좌표 → 화면 좌표 (셀카 미리보기와 같은 FILL_CENTER 방식)
+    fun FaceBox.onScreen() = FaceMapping.toScreen(this, size.width, size.height)
+    // 총잡이가 조준한 머리: 조준 순간의 얼굴이 있으면 거기, 없으면 기본 위치
+    val aimHead = aimFace?.onScreen() ?: defaultHead
 
     // 셀카 위에 반투명 어두운 막을 한 겹 깔아서 총잡이와 총알이 잘 보이게 한다.
     if (cameraBackground) drawRect(Palette.Background.copy(alpha = Layout.CAMERA_SCRIM_ALPHA))
@@ -372,33 +405,46 @@ private fun DrawScope.drawScene(
     // 총잡이 (총구 위치를 돌려받아 섬광/총알 시작점으로 쓴다)
     val muzzle = drawShooter(u, aimSide)
 
-    // 총알이 노리는 점: 내 머리의 왼쪽 또는 오른쪽 부분
+    // 총알이 노리는 점: 조준한 머리의 왼쪽 또는 오른쪽 부분 (머리 크기에 비례)
     fun targetOf(side: Side) =
-        Offset(headCenter.x + side.sign() * size.width * Layout.TARGET_OFFSET_X_RATIO, headCenter.y)
+        Offset(aimHead.x + side.sign() * aimHead.r * Layout.TARGET_OFFSET_HEAD_RATIO, aimHead.y)
 
     // 경고: 총구 섬광 + 노리는 곳에 조준점 → 플레이어가 방향을 미리 알 수 있다
     if (phase is Phase.Warning && muzzle != null) {
         val progress = ((now - phase.startTime) / (phase.endTime - phase.startTime))
             .coerceIn(0.0, 1.0).toFloat()
         drawCircle(Palette.Accent, radius = u * (0.2f + 0.4f * progress), center = muzzle)
-        drawReticle(targetOf(phase.side), radius = size.width * 0.06f, alpha = 0.4f + 0.6f * progress)
+        drawReticle(
+            targetOf(phase.side),
+            radius = aimHead.r * Layout.RETICLE_HEAD_RATIO,
+            alpha = 0.4f + 0.6f * progress,
+        )
     }
 
     // 나. 피격이면 빨갛게.
     val hurt = phase is Phase.GameOver &&
         (phase.reason == FailReason.HIT || phase.reason == FailReason.WRONG_DIRECTION)
     if (cameraBackground) {
-        // 셀카 모드: 진짜 얼굴이 보이므로 "얼굴을 여기에" 안내 원만 그린다.
+        // 셀카 모드: 진짜 얼굴이 보이므로 실제 얼굴을 둘러싼 원만 그린다 (인식이 잘 되는지 확인용).
+        // 얼굴이 안 보이면 기본 위치에 흐린 원 → "여기에 얼굴을 맞춰 주세요" 안내 역할.
         // 실제 고개 움직임이 곧 회피 동작이라 젖히는 연출은 하지 않는다.
+        val head = liveFace?.onScreen()
         drawCircle(
-            color = if (hurt) Palette.Danger else Palette.Ink.copy(alpha = 0.35f),
-            radius = size.width * Layout.PLAYER_HEAD_R_RATIO,
-            center = headCenter,
+            color = when {
+                hurt -> Palette.Danger
+                head != null -> Palette.Ink.copy(alpha = 0.5f)
+                else -> Palette.Ink.copy(alpha = 0.2f)
+            },
+            radius = (head ?: defaultHead).r,
+            center = Offset((head ?: defaultHead).x, (head ?: defaultHead).y),
             style = Stroke(width = u * 0.12f),
         )
     } else {
         rotate(degrees = leanDegrees(state, now), pivot = Offset(size.width / 2f, size.height)) {
-            drawPlayerPlaceholder(headCenter, if (hurt) Palette.Danger.copy(alpha = 0.6f) else Palette.Ink.copy(alpha = 0.18f))
+            drawPlayerPlaceholder(
+                Offset(defaultHead.x, defaultHead.y),
+                if (hurt) Palette.Danger.copy(alpha = 0.6f) else Palette.Ink.copy(alpha = 0.18f),
+            )
         }
     }
 

@@ -66,6 +66,18 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // 카메라 모드 (사용자 승인 후 추가): 셀카 미리보기 + 고개 기울기 인식.
+    // 영상은 기기 안에서만 처리하고 저장/전송하지 않는다.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.face.detection)
+
+    // 설정 저장 (입력 모드, 디버그 표시 여부). 4단계 최고 기록 저장에도 같이 쓴다.
+    implementation(libs.androidx.datastore.preferences)
 
     // 단위 테스트(JUnit) - 2단계에서 GameEngine 판정 로직 테스트에 사용
     testImplementation(libs.junit)

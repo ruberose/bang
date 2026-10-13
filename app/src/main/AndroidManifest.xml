@@ -5,6 +5,20 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      카메라 권한: 카메라 모드(고개 기울이기)에서만 쓴다.
+      실제 요청은 사용자가 메뉴에서 카메라 모드를 고르는 순간에만 한다.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+      required="false": 전면 카메라가 없는 기기도 앱을 설치할 수 있게 한다.
+      (그런 기기에서는 터치 모드로만 플레이)
+    -->
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
         android:label="@string/app_name"

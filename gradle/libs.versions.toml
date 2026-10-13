@@ -9,6 +9,9 @@ lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.11.0"
 composeBom = "2025.09.01"      # Compose 라이브러리들의 버전을 서로 맞춰주는 묶음(BOM)
 junit = "4.13.2"
+camerax = "1.4.2"              # CameraX: 전면 카메라 미리보기 + 프레임 분석
+mlkitFaceDetection = "16.1.7"  # ML Kit 얼굴 인식 (모델이 앱에 포함되어 기기 안에서만 동작)
+datastore = "1.1.7"            # 설정값 저장 (입력 모드 등)
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -22,6 +25,16 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+# Compose에서 LocalLifecycleOwner(카메라를 화면 수명에 묶을 때 필요)를 쓰기 위한 라이브러리
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+# CameraX: core(기본) + camera2(실제 카메라 구현) + lifecycle(화면 수명 연동) + view(미리보기 화면)
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+# 번들형 얼굴 인식: 모델을 앱에 포함 → 인터넷/Play 서비스 다운로드 없이 기기 안에서 처리
+mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "mlkitFaceDetection" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

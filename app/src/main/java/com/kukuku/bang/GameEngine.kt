@@ -14,9 +14,14 @@ import kotlin.random.Random
  * - 랜덤도 생성자로 받는다. 테스트에서 시드를 고정하면 결과가 매번 같아진다.
  * - 상태를 직접 바꾸지 않고, 항상 새 [GameState]를 돌려준다.
  *
- * @param random 대기 시간 랜덤에 쓸 난수 생성기
+ * @param random 대기 시간/방향 랜덤에 쓸 난수 생성기
+ * @param dodgeWindowBonus 회피 구간에 더해 줄 여유 시간(초). 입력 지연이 큰 입력 방식(카메라)용.
+ *   난이도 계산([dodgeWindow])과 따로 두는 이유: "난이도 규칙"과 "입력 장치 보정"은 별개의 개념이라서.
  */
-class GameEngine(private val random: Random = Random.Default) {
+class GameEngine(
+    private val random: Random = Random.Default,
+    private val dodgeWindowBonus: Double = 0.0,
+) {
 
     // ─────────────────────────── 판 시작 / 이어하기 ───────────────────────────
 
@@ -195,7 +200,8 @@ class GameEngine(private val random: Random = Random.Default) {
         Phase.Firing(
             fireTime = fireTime,
             hitTime = fireTime + bulletFlightTime(streak),
-            dodgeWindow = dodgeWindow(streak),
+            // 입력 방식 보정은 여기서만 더한다 (난이도 함수 자체는 SPEC 수치 그대로)
+            dodgeWindow = dodgeWindow(streak) + dodgeWindowBonus,
             side = side,
         )
 

@@ -320,6 +320,29 @@ class GameEngineTest {
         assertEquals("전설", engine.tier(50).label)
     }
 
+    // ─────────────── 입력 방식 보정 (카메라 모드) ───────────────
+
+    @Test
+    fun `회피 구간 보너스를 주면 구간이 그만큼 넓어진다`() {
+        val faceEngine = GameEngine(Random(42), dodgeWindowBonus = 0.10)
+        val start = faceEngine.newGame(0.0)
+        val warning = faceEngine.update(start, (start.phase as Phase.Waiting).endTime)
+        val s = faceEngine.update(warning, (warning.phase as Phase.Warning).endTime)
+        val f = s.phase as Phase.Firing
+        assertEquals(0.40, f.dodgeWindow, eps)
+
+        // 보너스가 없으면 실패했을 시각(hitTime - 0.35)에 피해도 성공
+        val after = faceEngine.onDodge(s, right(f), f.hitTime - 0.35)
+        assertEquals(1, after.streak)
+    }
+
+    @Test
+    fun `보너스는 난이도 함수 자체를 바꾸지 않는다`() {
+        val faceEngine = GameEngine(Random(42), dodgeWindowBonus = 0.10)
+        assertEquals(0.30, faceEngine.dodgeWindow(0), eps)
+        assertEquals(0.15, faceEngine.dodgeWindow(500), eps)
+    }
+
     // ─────────────── 이어하기 ───────────────
 
     @Test
